@@ -44,7 +44,7 @@
   }
   #button {
     position:absolute;
-    left:2%;
+    left:10px;
     top:15px;
     height:20px;
     line-height:20px;
@@ -52,6 +52,41 @@
     cursor:pointer;
     color:#fff;
     font-weight:bold;
+  }
+  #button2 {
+    position:absolute;
+    left:25px;
+    top:15px;
+    height:20px;
+    line-height:20px;
+    font-size:100%;
+    cursor:pointer;
+    color:#fff;
+    font-weight:bold;
+  }
+  #time {
+    position:absolute;
+    right:80%;
+    text-align:right;
+    color:#fff;
+    top:15px;
+    height:20px;
+    line-height:20px;
+    font-size:100%;
+    font-weight:bold;
+    padding-right:5px;
+  }
+  #stater {
+    position:absolute;
+    left:90%;
+    text-align:left;
+    color:#fff;
+    top:15px;
+    height:20px;
+    line-height:20px;
+    font-size:100%;
+    font-weight:bold;
+    padding-left:5px;
   }
   </style>
 </head>
@@ -62,8 +97,11 @@
 
   <div id='controller'>
     <div id='bg'></div>
+    <div id='time'></div>
+    <div id='stater'></div>
     <div id='bar_container'><div id='bar'></div></div>
     <div id='button'>||</div>
+    <div id='button2'>[]</div>
   </div>
 
   <img class='reverse' width='100%' height='100%' id="animation" src="">
@@ -83,15 +121,19 @@ function zfill(num, size) {
 var anim = function(s, e, timeout) {
   this.start = s.replace(/[^\d]/g, '');
   this.end = e.replace(/[^\d]/g, '');
+  this.timeout = timeout;
   this.array = [];
   this.playerState = 1;
   this.state = 0;
   this.bar_container = document.getElementById('bar_container');
   this.bar = document.getElementById('bar');
   this.button = document.getElementById('button');
+  this.button2 = document.getElementById('button2');
+  this.timer = document.getElementById('time');
+  this.stater = document.getElementById('stater');
 
   this.time = function() {
-    this.total = parseInt(((1*this.array.length-1) - 1*this.state) * timeout / 1000);
+    this.total = parseInt(((1*this.array.length-1) - 1*this.state) * this.timeout / 1000);
 
     this.hours = parseInt(this.total / 3600);
 
@@ -110,7 +152,7 @@ var anim = function(s, e, timeout) {
       'image': s.replace(/[0-9]+/, this.start.toString())
     });
 
-    if(1*this.start <= 1*this.end) {
+    if(1*this.start < 1*this.end) {
       this.start++;
       this.walk(this);
     }
@@ -118,8 +160,8 @@ var anim = function(s, e, timeout) {
   };
 
   this.initialize = function(self) {
+
     this.bar_container.onclick = function(ev) {
-      console.log(ev);
       var rect = self.bar_container.getBoundingClientRect();
       var r = rect.right;
       var l = rect.left;
@@ -127,6 +169,7 @@ var anim = function(s, e, timeout) {
       var c = ev.clientX;
       var y = (c-l) / w;
       self.state = Math.floor(y*self.array.length-1);
+      self.setState();
     };
 
     this.button.onclick = function(ev) {
@@ -139,11 +182,19 @@ var anim = function(s, e, timeout) {
         self.button.innerHTML = '||';
       }
     };
+
+    this.button2.onclick = function(ev) {
+      self.state = 0;
+      self.setState();
+    };
+
   };
 
   this.setState = function() {
     document.getElementById('animation').src=this.array[this.state].image;
     document.getElementById('status').innerHTML=this.time() + ' ' + this.array[this.state].image;
+    this.timer.innerHTML = this.time();
+    this.stater.innerHTML = this.state;
     var yuzde = (this.state+1) * 100 / this.array.length;
     this.bar.style.width = yuzde + '%';
     document.title=this.array[this.state].image;
@@ -157,12 +208,13 @@ var anim = function(s, e, timeout) {
       }
       else {
         this.playerState = 0;
+        console.log('the end:', this.state);
       }
     }
 
     setTimeout(function() {
       self.play(self);
-    }, timeout);
+    }, self.timeout);
 
   };
 
