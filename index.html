@@ -3,20 +3,32 @@
 <head>
   <title>Animator</title>
   <style type="text/css">
-  .reverse {
+  .rotate_1 {
+    transform:rotate(90deg);
+  }
+  .rotate_2 {
     transform:rotate(180deg);
+  }
+  .rotate_3 {
+    transform:rotate(270deg);
+  }
+  .rotate_0 {
+    transform:rotate(0deg);
   }
   html,body {
     padding:0;margin:0;
+    width:100%;
+    height:100%;
   }
   #controller {
     position:fixed;
     width:80%;
     height:50px;
     left:10%;
-    bottom:10%;
+    bottom:20px;
     border:1px solid #fff;
     z-index:100;
+    cursor:move;
   }
   #bg {
     position:absolute;
@@ -88,14 +100,30 @@
     font-weight:bold;
     padding-left:5px;
   }
+  #rotater {
+    position:fixed;
+    left:20px;
+    text-align:left;
+    color:#fff;
+    top:15px;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    z-index:999;
+  }
+  .nocursor {
+    cursor:none !important;
+  }
   </style>
 </head>
-<body>
+<body class='nocursor'>
 <div style='position:relative;width:100%height:100%;'>
 
   <div style='position:fixed;right:20px;top:20px;color:red;font-size:14px;font-weight:bold;z-index:100;' id='status'>helloooo</div>
 
-  <div id='controller'>
+  <div id='rotater'>@rotate</div>
+
+  <div id='controller' draggable="true">
     <div id='bg'></div>
     <div id='time'></div>
     <div id='stater'></div>
@@ -104,18 +132,32 @@
     <div id='button2'>[]</div>
   </div>
 
-  <img class='reverse' width='100%' height='100%' id="animation" src="">
+  <img class='rotate_0' width='100%' height='100%' id="animation" src="">
 
 
 </div>
 
 <script type="text/javascript">
-var start = 'GOPR2131.JPG';
+var start = 'GOPR0133.JPG';
 var end = 'GOPR2670.JPG';
 
 function zfill(num, size) {
     var s = "000000000" + num;
     return s.substr(s.length-size);
+};
+
+function requestFullScreen(element) {
+    // Supports most browsers and their versions.
+    var requestMethod = element.requestFullScreen || element.webkitRequestFullScreen || element.mozRequestFullScreen || element.msRequestFullScreen;
+
+    if (requestMethod) { // Native full screen.
+        requestMethod.call(element);
+    } else if (typeof window.ActiveXObject !== "undefined") { // Older IE.
+        var wscript = new ActiveXObject("WScript.Shell");
+        if (wscript !== null) {
+            wscript.SendKeys("{F11}");
+        }
+    }
 };
 
 var anim = function(s, e, timeout) {
@@ -125,12 +167,16 @@ var anim = function(s, e, timeout) {
   this.array = [];
   this.playerState = 1;
   this.state = 0;
+  this.controller = document.getElementById('controller');
   this.bar_container = document.getElementById('bar_container');
   this.bar = document.getElementById('bar');
   this.button = document.getElementById('button');
   this.button2 = document.getElementById('button2');
   this.timer = document.getElementById('time');
   this.stater = document.getElementById('stater');
+  this.rotater = document.getElementById('rotater');
+  this.animation = document.getElementById('animation');
+  this.status = document.getElementById('status');
 
   this.time = function() {
     this.total = parseInt(((1*this.array.length-1) - 1*this.state) * this.timeout / 1000);
@@ -144,22 +190,58 @@ var anim = function(s, e, timeout) {
     return zfill(this.hours,2) + ':' + zfill(this.minutes,2) + ':'+zfill(this.seconds,2);
   };
 
-  this.walk = function(self) {
-    this.nextImage = s.replace(/[0-9]+/, this.start.toString());
+  this.show = function() {
+    this.controller.style.opacity=1;
+    document.body.className='';
+  };
+  this.hide = function() {
+    this.controller.style.opacity=0;
+    document.body.className='nocursor';
+  };
 
-    this.array.push({
-      'status': this.time() + ' - ' + this.nextImage,
-      'image': s.replace(/[0-9]+/, this.start.toString())
+  this.walk = function(self) {
+    self.nextImage = s.replace(/[0-9]+/, zfill(self.start,4));
+
+    self.array.push({
+      'status': self.time() + ' - ' + self.nextImage,
+      'image': self.nextImage
     });
 
-    if(1*this.start < 1*this.end) {
-      this.start++;
-      this.walk(this);
+    if(1*self.start < 1*self.end) {
+      self.start++;
+      self.walk(self);
     }
 
   };
 
+  this.togglePlay = function() {
+    if(this.playerState == 1) {
+      this.playerState = 0;
+      this.button.innerHTML = '>';
+    }
+    else {
+      this.playerState = 1;
+      this.button.innerHTML = '||';
+    }
+  };
+
   this.initialize = function(self) {
+
+    self.hide();
+    self.controller.onmouseout = function() {
+      self.t = setTimeout(function() {
+        self.hide();
+      }, 1500);
+    };
+
+    document.body.onmouseover = function() {
+      document.body.className='';
+    };
+
+    self.controller.onmouseover = function() {
+      clearTimeout(self.t);
+      self.show();
+    };
 
     this.bar_container.onclick = function(ev) {
       var rect = self.bar_container.getBoundingClientRect();
@@ -173,14 +255,7 @@ var anim = function(s, e, timeout) {
     };
 
     this.button.onclick = function(ev) {
-      if(self.playerState == 1) {
-        self.playerState = 0;
-        self.button.innerHTML = '>';
-      }
-      else {
-        self.playerState = 1;
-        self.button.innerHTML = '||';
-      }
+      self.togglePlay();
     };
 
     this.button2.onclick = function(ev) {
@@ -188,11 +263,37 @@ var anim = function(s, e, timeout) {
       self.setState();
     };
 
+    this.rotater.onclick = function() {
+      self.animation.className = 'rotate_' + (1*self.animation.className.split('_')[1]+1 % 4);
+    };
+
+    document.onkeyup=function(ev){
+      ev.preventDefault();
+      if(ev.keyCode == 39) {
+        self.playerState=0;
+        self.button.innerHTML = '>';
+        self.state = self.state+1;
+        self.setState();
+      }
+      if(ev.keyCode == 37) {
+        self.playerState=0;
+        self.button.innerHTML = '>';
+        self.state = self.state-1;
+        self.setState();
+      }
+      if(ev.keyCode == 32) {
+        self.togglePlay();
+      }
+      if(ev.keyCode == 70) {
+        requestFullScreen(document.body);
+      }
+    };
+
   };
 
   this.setState = function() {
-    document.getElementById('animation').src=this.array[this.state].image;
-    document.getElementById('status').innerHTML=this.time() + ' ' + this.array[this.state].image;
+    this.animation.src=this.array[this.state].image;
+    this.status.innerHTML=this.time() + ' ' + this.array[this.state].image;
     this.timer.innerHTML = this.time();
     this.stater.innerHTML = this.state;
     var yuzde = (this.state+1) * 100 / this.array.length;
